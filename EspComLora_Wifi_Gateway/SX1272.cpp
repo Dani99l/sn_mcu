@@ -170,7 +170,9 @@ uint8_t SX1272::ON()
 //#else
     //Configure the MISO, MOSI, CS, SPCR.
       SPI.pins(SCK, MISO, MOSI, SX1272_SS);
+      delay(100);
       SPI.begin();
+      delay(100);
     //Set Most significant bit first
     SPI.setBitOrder(MSBFIRST);
 //#ifdef _VARIANT_ARDUINO_DUE_X_
@@ -416,7 +418,9 @@ byte SX1272::readRegister(byte address)
     Serial.print(F("Register "));
     Serial.print(address, HEX);
     Serial.print(F(":  "));
+   // Serial.print(value, HEX);
     Serial.print(value, HEX);
+
     Serial.println();
 #endif
 
@@ -705,7 +709,7 @@ int8_t SX1272::setMode(uint8_t mode)
         setLORA();
     }
     writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// LoRa standby mode
-    mode=10;
+    //mode=10;
     switch (mode)
     {
     // mode 1 (better reach, medium time on air)
@@ -3832,17 +3836,13 @@ uint8_t SX1272::receive()
 {
     uint8_t state = 1;
 
-#if (SX1272_debug_mode > 1)
-    Serial.println();
-    Serial.println(F("Starting 'receive'"));
-#endif
+      #if (SX1272_debug_mode > 1)
+          Serial.println();
+          Serial.println(F("Starting 'receive'"));
+      #endif
 
     // Initializing packet_received struct
     memset( &packet_received, 0x00, sizeof(packet_received) );
-
-    // Setting Testmode
-    // commented by C. Pham
-    //writeRegister(0x31,0x43);
 
     // Set LowPnTxPllOff
     // modified by C. Pham from 0x09 to 0x08
@@ -3852,12 +3852,12 @@ uint8_t SX1272::receive()
     // modified by C. Pham
     writeRegister(REG_LNA, LNA_MAX_GAIN);
     writeRegister(REG_FIFO_ADDR_PTR, 0x00);  // Setting address pointer in FIFO data buffer
-    // change RegSymbTimeoutLsb
-    // comment by C. Pham
-    // single_chan_pkt_fwd uses 00 00001000
-    // why here we have 11 11111111
-    // change RegSymbTimeoutLsb
-    //writeRegister(REG_SYMB_TIMEOUT_LSB, 0xFF);
+                                            // change RegSymbTimeoutLsb
+                                            // comment by C. Pham
+                                            // single_chan_pkt_fwd uses 00 00001000
+                                            // why here we have 11 11111111
+                                            // change RegSymbTimeoutLsb
+                                            //writeRegister(REG_SYMB_TIMEOUT_LSB, 0xFF);
 
     // modified by C. Pham
     if (_spreadingFactor == SF_10 || _spreadingFactor == SF_11 || _spreadingFactor == SF_12) {
@@ -3874,19 +3874,19 @@ uint8_t SX1272::receive()
     { // LoRa mode
         state = setPacketLength(MAX_LENGTH);	// With MAX_LENGTH gets all packets with length < MAX_LENGTH
         writeRegister(REG_OP_MODE, LORA_RX_MODE);  	  // LORA mode - Rx
-#if (SX1272_debug_mode > 1)
-        Serial.println(F("## Receiving LoRa mode activated with success ##"));
-        Serial.println();
-#endif
+                                                #if (SX1272_debug_mode > 1)
+                                                        Serial.println(F("## Receiving LoRa mode activated with success ##"));
+                                                        Serial.println();
+                                                #endif
     }
     else
     { // FSK mode
         state = setPacketLength();
         writeRegister(REG_OP_MODE, FSK_RX_MODE);  // FSK mode - Rx
-#if (SX1272_debug_mode > 1)
-        Serial.println(F("## Receiving FSK mode activated with success ##"));
-        Serial.println();
-#endif
+                                                #if (SX1272_debug_mode > 1)
+                                                        Serial.println(F("## Receiving FSK mode activated with success ##"));
+                                                        Serial.println();
+                                                #endif
     }
     return state;
 }
@@ -3929,85 +3929,85 @@ uint8_t SX1272::receivePacketTimeout()
 // receiver always use receivePacketTimeout()
 // sender should either use sendPacketTimeout() or sendPacketTimeoutACK()
 
-uint8_t SX1272::receivePacketTimeout(uint16_t wait)
-{
-    uint8_t state = 2;
-    uint8_t state_f = 2;
-
-
-#if (SX1272_debug_mode > 1)
-    Serial.println();
-    Serial.println(F("Starting 'receivePacketTimeoutACK'"));
-#endif
-
-    state = receive();
-    if( state == 0 )
-    {
-        if( availableData(wait) )
-        {
-            state = getPacket();
-        }
-        else
-        {
-            state = 1;
-            state_f = 3;  // There is no packet received
-        }
-    }
-    else
-    {
-        state = 1;
-        state_f = 1; // There has been an error with the 'receive' function
-    }
-
-    if( (state == 0) || (state == 3) || (state == 5) )
-    {
-        if( _reception == INCORRECT_PACKET )
-        {
-            state_f = 4;  // The packet has been incorrectly received
-        }
-        else
-        {
-            state_f = 0;  // The packet has been correctly received
-            // added by C. Pham
-            // we get the SNR and RSSI of the received packet for future usage
-            getSNR();
-            getRSSIpacket();
-        }
-
-        // need to send an ACK
-        if ( state == 5 && state_f == 0) {
-
-            state = setACK();
-
-            if( state == 0 )
-            {
-                state = sendWithTimeout();
-                if( state == 0 )
-                {
-                    state_f = 0;
-#if (SX1272_debug_mode > 1)
-                    Serial.println(F("This last packet was an ACK, so ..."));
-                    Serial.println(F("ACK successfully sent"));
-                    Serial.println();
-#endif
-                }
-                else
-                {
-                    state_f = 1; // There has been an error with the 'sendWithTimeout' function
-                }
-            }
-            else
-            {
-                state_f = 1; // There has been an error with the 'setACK' function
-            }
-        }
-    }
-    else
-    {
-        state_f = 1;
-    }
-    return state_f;
-}
+//uint8_t SX1272::receivePacketTimeout(uint16_t wait)
+//{
+//    uint8_t state = 2;
+//    uint8_t state_f = 2;
+//
+//
+//#if (SX1272_debug_mode > 1)
+//    Serial.println();
+//    Serial.println(F("Starting 'receivePacketTimeoutACK'"));
+//#endif
+//
+//    state = receive();
+//    if( state == 0 )
+//    {
+//        if( availableData(wait) )
+//        {
+//            state = getPacket();
+//        }
+//        else
+//        {
+//            state = 1;
+//            state_f = 3;  // There is no packet received
+//        }
+//    }
+//    else
+//    {
+//        state = 1;
+//        state_f = 1; // There has been an error with the 'receive' function
+//    }
+//
+//    if( (state == 0) || (state == 3) || (state == 5) )
+//    {
+//        if( _reception == INCORRECT_PACKET )
+//        {
+//            state_f = 4;  // The packet has been incorrectly received
+//        }
+//        else
+//        {
+//            state_f = 0;  // The packet has been correctly received
+//            // added by C. Pham
+//            // we get the SNR and RSSI of the received packet for future usage
+//            getSNR();
+//            getRSSIpacket();
+//        }
+//
+//        // need to send an ACK
+//        if ( state == 5 && state_f == 0) {
+//
+//            state = setACK();
+//
+//            if( state == 0 )
+//            {
+//                state = sendWithTimeout();
+//                if( state == 0 )
+//                {
+//                    state_f = 0;
+//#if (SX1272_debug_mode > 1)
+//                    Serial.println(F("This last packet was an ACK, so ..."));
+//                    Serial.println(F("ACK successfully sent"));
+//                    Serial.println();
+//#endif
+//                }
+//                else
+//                {
+//                    state_f = 1; // There has been an error with the 'sendWithTimeout' function
+//                }
+//            }
+//            else
+//            {
+//                state_f = 1; // There has been an error with the 'setACK' function
+//            }
+//        }
+//    }
+//    else
+//    {
+//        state_f = 1;
+//    }
+//    return state_f;
+//}
 #else
 
 uint8_t SX1272::receivePacketTimeout(uint16_t wait)
@@ -4023,15 +4023,15 @@ uint8_t SX1272::receivePacketTimeout(uint16_t wait)
     state = receive();
     if( state == 0 )
     {
-        if( availableData(wait) )
-        {
+      //  if( availableData(wait) )
+     //   {
             // If packet received, getPacket
             state_f = getPacket();
-        }
-        else
-        {
-            state_f = 1;
-        }
+     //   }
+//        else
+//        {
+//            state_f = 1;
+//        }
     }
     else
     {
@@ -4168,22 +4168,23 @@ uint8_t SX1272::receiveAll(uint16_t wait)
     uint8_t state = 2;
     byte config1;
 
-#if (SX1272_debug_mode > 1)
-    Serial.println();
-    Serial.println(F("Starting 'receiveAll'"));
-#endif
+                            #if (SX1272_debug_mode > 1)
+                                Serial.println();
+                                Serial.println(F("Starting 'receiveAll'"));
+                            #endif
 
-    if( _modem == FSK )
-    { // FSK mode
-        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);		// Setting standby FSK mode
-        config1 = readRegister(REG_PACKET_CONFIG1);
-        config1 = config1 & B11111001;			// clears bits 2-1 from REG_PACKET_CONFIG1
-        writeRegister(REG_PACKET_CONFIG1, config1);		// AddressFiltering = None
-    }
-#if (SX1272_debug_mode > 1)
-    Serial.println(F("## Address filtering desactivated ##"));
-    Serial.println();
-#endif
+//    if( _modem == FSK )
+//    { // FSK mode
+//        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);		// Setting standby FSK mode
+//        config1 = readRegister(REG_PACKET_CONFIG1);
+//        config1 = config1 & B11111001;			// clears bits 2-1 from REG_PACKET_CONFIG1
+//        writeRegister(REG_PACKET_CONFIG1, config1);		// AddressFiltering = None
+//    }
+                            #if (SX1272_debug_mode > 1)
+                                Serial.println(F("## Address filtering desactivated ##"));
+                                Serial.println();
+                            #endif
+
     state = receive();	// Setting Rx mode
     if( state == 0 )
     {
@@ -4209,12 +4210,12 @@ boolean	SX1272::availableData()
  Parameters:
    wait: time to wait while there is no a valid header received.
 */
-boolean	SX1272::availableData(uint16_t wait)
+boolean  SX1272::availableData(uint16_t wait)
 {
     byte value;
     byte header = 0;
     boolean forme = false;
-    boolean	_hreceived = false;
+    boolean _hreceived = false;
     unsigned long previous;
 
 
@@ -4242,9 +4243,9 @@ boolean	SX1272::availableData(uint16_t wait)
 
         if( bitRead(value, 4) == 1 )
         { // header received
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("## Valid Header received in LoRa mode ##"));
-#endif
+                          #if (SX1272_debug_mode > 0)
+                                      Serial.println(F("## Valid Header received in LoRa mode ##"));
+                          #endif
             _hreceived = true;
 
 #ifdef W_NET_KEY
@@ -4280,10 +4281,10 @@ boolean	SX1272::availableData(uint16_t wait)
         {
             forme = false;
             _hreceived = false;
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("** The timeout has expired **"));
-            Serial.println();
-#endif
+                                                #if (SX1272_debug_mode > 0)
+                                                            Serial.println(F("** The timeout has expired **"));
+                                                            Serial.println();
+                                                #endif
         }
     }
     else
@@ -4299,7 +4300,7 @@ boolean	SX1272::availableData(uint16_t wait)
                 previous = millis();
             }
         }// end while (millis)
-        if( bitRead(value, 2) == 1 )	// something received
+        if( bitRead(value, 2) == 1 )  // something received
         {
             _hreceived = true;
 #if (SX1272_debug_mode > 0)
@@ -4346,11 +4347,13 @@ boolean	SX1272::availableData(uint16_t wait)
             }
 
 
-        if( forme && ((_destination == _nodeAddress) || (_destination == BROADCAST_0)) )
+      //  if( forme && ((_destination == _nodeAddress) || (_destination == BROADCAST_0)) )
 #else
         // modified by C. Pham
         // if _rawFormat, accept all
-        if( (_destination == _nodeAddress) || (_destination == BROADCAST_0) || _rawFormat)
+//        if( (_destination == _nodeAddress) || (_destination == BROADCAST_0) || _rawFormat)
+
+        if( (_destination == 5) || (_destination == BROADCAST_0) || _rawFormat)
 #endif
         { // LoRa or FSK mode
             forme = true;
@@ -4365,21 +4368,22 @@ boolean	SX1272::availableData(uint16_t wait)
             Serial.println(F("## Packet received is not for me ##"));
             Serial.println();
 #endif
-            if( _modem == LORA )	// STANDBY PARA MINIMIZAR EL CONSUMO
+            if( _modem == LORA )  // STANDBY PARA MINIMIZAR EL CONSUMO
             { // LoRa mode
-                //writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// Setting standby LoRa mode
+                //writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);  // Setting standby LoRa mode
             }
             else
             { //  FSK mode
-                writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);	// Setting standby FSK mode
+                writeRegister(REG_OP_MODE, FSK_STANDBY_MODE); // Setting standby FSK mode
             }
         }
     }
     //----else
-    //	{
-    //	}
+    //  {
+    //  }
     return forme;
 }
+
 
 /*
  Function: It gets and stores a packet if it is received before MAX_TIMEOUT expires.
@@ -4417,18 +4421,268 @@ int8_t SX1272::getPacket()
    state = -1 --> Forbidden parameter value for this function
  Parameters:
    wait: time to wait while there is no a valid header received.
+
+
 */
+/*-------------------------------------------------------------------*/
+int8_t SX1272::getPacket(uint16_t wait)
+{
+  uint8_t state = 2;
+  uint8_t state_f = 2;
+  byte value = 0x00;
+  unsigned long previous;
+  boolean p_received = false;
+
+  #if (SX1272_debug_mode > 0)
+    Serial.println();
+    Serial.println(F("Starting 'getPacket'"));
+  #endif
+
+  previous = millis();
+  
+  if( _modem == LORA )
+  {
+    /// LoRa mode
+    // read REG_IRQ_FLAGS
+    value = readRegister(REG_IRQ_FLAGS);
+    
+    // Wait until the packet is received (RxDone flag) or the timeout expires
+    while( (bitRead(value, 6) == 0) && (millis()-previous < (unsigned long)wait) )
+    {
+      value = readRegister(REG_IRQ_FLAGS);
+      
+      // Condition to avoid an overflow (DO NOT REMOVE)
+      if( millis() < previous )
+      {
+        previous = millis();
+      }
+    }
+
+    // Check if 'RxDone' is true and 'PayloadCrcError' is correct
+    if( (bitRead(value, 6) == 1) && (bitRead(value, 5) == 0) )
+    { 
+      // packet received & CRC correct
+      p_received = true;  // packet correctly received
+      _reception = CORRECT_PACKET;
+      #if (SX1272_debug_mode > 0)
+        Serial.println(F("## Packet correctly received in LoRa mode ##"));
+      #endif
+    }
+    else
+    {
+      if( bitRead(value, 6) != 1 )
+      { 
+        #if (SX1272_debug_mode > 0)
+          Serial.println(F("NOT 'RxDone' flag"));
+        #endif
+      }
+      
+      if( _CRC != CRC_ON )
+      { 
+        #if (SX1272_debug_mode > 0)
+          Serial.println(F("NOT 'CRC_ON' enabled"));
+        #endif
+      }
+      
+      if( (bitRead(value, 5) == 0) && (_CRC == CRC_ON) )
+      { 
+        // CRC is correct
+        _reception = CORRECT_PACKET;
+      }
+      else
+      { 
+        // CRC incorrect
+        _reception = INCORRECT_PACKET;
+        state = 3;
+        #if (SX1272_debug_mode > 0)
+          Serial.println(F("** The CRC is incorrect **"));
+          Serial.println();
+        #endif
+      }
+    }     
+
+  }
+  else
+  { 
+    /// FSK mode
+    value = readRegister(REG_IRQ_FLAGS2);
+    while( (bitRead(value, 2) == 0) && (millis() - previous < wait) )
+    {
+      value = readRegister(REG_IRQ_FLAGS2);
+      // Condition to avoid an overflow (DO NOT REMOVE)
+      if( millis() < previous )
+      {
+        previous = millis();
+      }
+    } // end while (millis)
+    if( bitRead(value, 2) == 1 )
+    { // packet received
+      if( (bitRead(value, 1) == 1) && (_CRC == CRC_ON) )
+      { // CRC correct
+        _reception = CORRECT_PACKET;
+        p_received = true;
+        #if (SX1272_debug_mode > 0)
+          Serial.println(F("## Packet correctly received in FSK mode ##"));
+        #endif
+      }
+      else
+      { // CRC incorrect
+        _reception = INCORRECT_PACKET;
+        state = 3;
+        p_received = false;
+        #if (SX1272_debug_mode > 0)
+          Serial.println(F("## Packet incorrectly received in FSK mode ##"));
+        #endif
+      }
+    }
+    else
+    {
+      #if (SX1272_debug_mode > 0)
+        Serial.println(F("** The timeout has expired **"));
+        Serial.println();
+      #endif
+    }
+    writeRegister(REG_OP_MODE, FSK_STANDBY_MODE); // Setting standby FSK mode
+  }
+  
+  /* If a new packet was received correctly, now the information must be 
+   * filled inside the structures of the class 
+   */
+  if( p_received == true )
+  {   
+    // Store the packet
+    if( _modem == LORA )
+    {
+      /// LoRa
+      // Setting address pointer in FIFO data buffer
+      writeRegister(REG_FIFO_ADDR_PTR, 0x00); 
+      // Storing first byte of the received packet
+      packet_received.dst = readRegister(REG_FIFO);
+    }
+    else
+    {
+      /// FSK
+      value = readRegister(REG_PACKET_CONFIG1);
+      if( (bitRead(value, 2) == 0) && (bitRead(value, 1) == 0) )
+      {
+        // Storing first byte of the received packet
+        packet_received.dst = readRegister(REG_FIFO); 
+      }
+      else
+      {
+        // Storing first byte of the received packet
+        packet_received.dst = _destination;
+      }
+    }
+    
+    // Reading second byte of the received packet
+    // Reading third byte of the received packet
+    // Reading fourth byte of the received packet 
+    packet_received.src = readRegister(REG_FIFO);
+    packet_received.packnum = readRegister(REG_FIFO);
+    packet_received.length = readRegister(REG_FIFO);
+    
+    // calculate the payload length
+    if( _modem == LORA )
+    {
+      _payloadlength = packet_received.length - OFFSET_PAYLOADLENGTH;
+    }
+    
+    // check if length is incorrect
+    if( packet_received.length > (MAX_LENGTH + 1) )
+    {
+      #if (SX1272_debug_mode > 0)
+        Serial.println(F("Corrupted packet, length must be less than 256"));
+      #endif
+    }
+    else
+    {
+      // Store payload in 'data'
+      for(unsigned int i = 0; i < _payloadlength; i++)
+      {
+        packet_received.data[i] = readRegister(REG_FIFO); 
+      }
+      // Store 'retry'
+      packet_received.retry = readRegister(REG_FIFO);
+      
+      // Print the packet if debug_mode
+      #if (SX1272_debug_mode > 0)
+        Serial.println(F("## Packet received:"));
+        Serial.print(packet_received.dst, HEX);       // Printing destination
+        Serial.print("|");
+        Serial.print(packet_received.src,HEX);       // Printing source
+        Serial.print("|");
+        Serial.print(packet_received.packnum,HEX);     // Printing packet number
+        Serial.print("|");
+        Serial.print(packet_received.length,HEX);      // Printing packet length
+        Serial.print("|");
+        for(unsigned int i = 0; i < _payloadlength; i++)
+        {
+          Serial.print(packet_received.data[i],HEX);   // Printing payload
+          Serial.print("|");
+        }
+        Serial.print(packet_received.retry,HEX);     // Printing number retry
+        Serial.println(F(" ##"));
+        Serial.println();
+      #endif
+      state_f = 0;
+    }
+  }
+  else
+  {
+    // if packet was NOT received
+    state_f = 1;
+    if( (_reception == INCORRECT_PACKET) && (_retries < _maxRetries) && (state != 3) )
+    {
+      _retries++;
+      #if (SX1272_debug_mode > 0)
+        Serial.println(F("## Retrying to send the last packet ##"));
+        Serial.println();
+      #endif
+    }
+  }
+  
+  // Setting address pointer in FIFO data buffer to 0x00 again
+  if( _modem == LORA )
+  {
+    writeRegister(REG_FIFO_ADDR_PTR, 0x00);
+  }
+  
+  // Initializing flags 
+  clearFlags(); 
+  
+  if( wait > MAX_WAIT )
+  {
+    state_f = -1;
+    #if (SX1272_debug_mode > 0)
+      Serial.println(F("** The timeout must be smaller than 12.5 seconds **"));
+      Serial.println();
+    #endif
+  }
+
+  return state_f;
+}
+
+
+  /* -------------------------------------------------------------------------------------*/
+
+
+
+
+
+   
+/*
 int8_t SX1272::getPacket(uint16_t wait)
 {
     uint8_t state = 2;
     byte value = 0x00;
     unsigned long previous;
     boolean p_received = false;
-
-#if (SX1272_debug_mode > 0)
-    Serial.println();
-    Serial.println(F("Starting 'getPacket'"));
-#endif
+    byte rxAddr;
+                                                                        #if (SX1272_debug_mode > 0)
+                                                                            Serial.println();
+                                                                            Serial.println(F("Starting 'getPacket'"));
+                                                                        #endif
 
     previous = millis();
     if( _modem == LORA )
@@ -4447,11 +4701,12 @@ int8_t SX1272::getPacket(uint16_t wait)
 
         if( (bitRead(value, 6) == 1) && (bitRead(value, 5) == 0) )
         { // packet received & CRC correct
-            p_received = true;	// packet correctly received
+            p_received = true;  // packet correctly received
             _reception = CORRECT_PACKET;
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("## Packet correctly received in LoRa mode ##"));
-#endif
+                                                    #if (SX1272_debug_mode > 0)
+                                                                Serial.println(F("## Packet correctly received in LoRa mode ##"));
+                                                    #endif
+        
         }
         else
         {
@@ -4459,55 +4714,25 @@ int8_t SX1272::getPacket(uint16_t wait)
             { // CRC incorrect
                 _reception = INCORRECT_PACKET;
                 state = 3;
-#if (SX1272_debug_mode > 0)
-                Serial.println(F("** The CRC is incorrect **"));
-                Serial.println();
-#endif
+                                                    #if (SX1272_debug_mode > 0)
+                                                                    Serial.println(F("** The CRC is incorrect **"));
+                                                                    Serial.println();
+                                                    #endif
+
+             p_received = true;                                       
             }
         }
-        //writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// Setting standby LoRa mode
+        writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);  // Setting standby LoRa mode
+        //  TESTE
+          // packet correctly received
+
     }
-    else
-    { // FSK mode
-        value = readRegister(REG_IRQ_FLAGS2);
-        while( (bitRead(value, 2) == 0) && (millis() - previous < wait) )
-        {
-            value = readRegister(REG_IRQ_FLAGS2);
-            // Condition to avoid an overflow (DO NOT REMOVE)
-            if( millis() < previous )
-            {
-                previous = millis();
-            }
-        } // end while (millis)
-        if( bitRead(value, 2) == 1 )
-        { // packet received
-            if( bitRead(value, 1) == 1 )
-            { // CRC correct
-                _reception = CORRECT_PACKET;
-                p_received = true;
-#if (SX1272_debug_mode > 0)
-                Serial.println(F("## Packet correctly received in FSK mode ##"));
-#endif
-            }
-            else
-            { // CRC incorrect
-                _reception = INCORRECT_PACKET;
-                state = 3;
-                p_received = false;
-#if (SX1272_debug_mode > 0)
-                Serial.println(F("## Packet incorrectly received in FSK mode ##"));
-#endif
-            }
-        }
-        else
-        {
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("** The timeout has expired **"));
-            Serial.println();
-#endif
-        }
-        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);	// Setting standby FSK mode
-    }
+
+
+//    rxAddr=readRegister(REG_FIFO_RX_CURRENT_ADDR);
+//    Serial.println("rxAddr ");
+//    Serial.print(rxAddr, HEX);
+//    Serial.println("");
     if( p_received == true )
     {
         // Store the packet
@@ -4515,18 +4740,9 @@ int8_t SX1272::getPacket(uint16_t wait)
         {
             // comment by C. Pham
             // set the FIFO addr to 0 to read again all the bytes
-            writeRegister(REG_FIFO_ADDR_PTR, 0x00);  	// Setting address pointer in FIFO data buffer
+          //  writeRegister(REG_FIFO_ADDR_PTR, rxAddr);   // "aponta para a ultima posicão do pacote recebido"
+            writeRegister(REG_FIFO_ADDR_PTR, 0x00);    // Setting address pointer in FIFO data buffer
 
-#ifdef W_NET_KEY
-            // added by C. Pham
-            packet_received.netkey[0]=readRegister(REG_FIFO);
-            packet_received.netkey[1]=readRegister(REG_FIFO);
-#endif
-            //modified by C. Pham
-            if (!_rawFormat)
-                packet_received.dst = readRegister(REG_FIFO);	// Storing first byte of the received packet
-            else
-                packet_received.dst = 0;
         }
         else
         {
@@ -4537,85 +4753,65 @@ int8_t SX1272::getPacket(uint16_t wait)
             }
             else
             {
-                packet_received.dst = _destination;			// Storing first byte of the received packet
+                packet_received.dst = _destination;     // Storing first byte of the received packet
             }
         }
 
-        // modified by C. Pham
-        if (!_rawFormat) {
-            packet_received.type = readRegister(REG_FIFO);		// Reading second byte of the received packet
-            packet_received.src = readRegister(REG_FIFO);		// Reading second byte of the received packet
-            packet_received.packnum = readRegister(REG_FIFO);	// Reading third byte of the received packet
-            //packet_received.length = readRegister(REG_FIFO);	// Reading fourth byte of the received packet
-        }
-        else {
-            packet_received.type = 0;
-            packet_received.src = 0;
-            packet_received.packnum = 0;
-        }
 
         packet_received.length = readRegister(REG_RX_NB_BYTES);
 
-        if( _modem == LORA )
-        {
-            if (_rawFormat) {
-                _payloadlength=packet_received.length;
-            }
-            else
-                _payloadlength = packet_received.length - OFFSET_PAYLOADLENGTH;
-        }
+//        if( _modem == LORA )
+//        {
+//            if (_rawFormat) {
+//                _payloadlength=packet_received.length;
+//            }
+//            else
+//                _payloadlength = packet_received.length - OFFSET_PAYLOADLENGTH;
+//        }
         if( packet_received.length > (MAX_LENGTH + 1) )
         {
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("Corrupted packet, length must be less than 256"));
-#endif
+                          #if (SX1272_debug_mode > 0)
+                                      Serial.println(F("Corrupted packet, length must be less than 256"));
+                          #endif
         }
         else
         {
-            for(unsigned int i = 0; i < _payloadlength; i++)
+            for(unsigned int i = 0; i < packet_received.length; i++)
             {
                 packet_received.data[i] = readRegister(REG_FIFO); // Storing payload
+//                Serial.print(packet_received.data[i]);
+//                Serial.print("  -  "); 
             }
 
             // commented by C. Pham
             //packet_received.retry = readRegister(REG_FIFO);
 
             // Print the packet if debug_mode
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("## Packet received:"));
-            Serial.print(F("Destination: "));
-            Serial.println(packet_received.dst);			 	// Printing destination
-            Serial.print(F("Type: "));
-            Serial.println(packet_received.type);			 	// Printing source
-            Serial.print(F("Source: "));
-            Serial.println(packet_received.src);			 	// Printing source
-            Serial.print(F("Packet number: "));
-            Serial.println(packet_received.packnum);			// Printing packet number
-            //Serial.print(F("Packet length: "));
-            //Serial.println(packet_received.length);			// Printing packet length
-            Serial.print(F("Data: "));
-            for(unsigned int i = 0; i < _payloadlength; i++)
-            {
-                Serial.print((char)packet_received.data[i]);		// Printing payload
-            }
-            Serial.println();
-            //Serial.print(F("Retry number: "));
-            //Serial.println(packet_received.retry);			// Printing number retry
-            Serial.println(F("##"));
-            Serial.println();
-#endif
+                          #if (SX1272_debug_mode > 0)
+                                      Serial.println(F("## Packet received:"));
+                                      Serial.print(F("Destination: "));
+                                      Serial.println(packet_received.dst);        // Printing destination
+                                      Serial.print(F("Type: "));
+                                      Serial.println(packet_received.type);       // Printing source
+                                      Serial.print(F("Source: "));
+                                      Serial.println(packet_received.src);        // Printing source
+                                      Serial.print(F("Packet number: "));
+                                      Serial.println(packet_received.packnum);      // Printing packet number
+                                      Serial.print(F("Packet length: "));
+                                      Serial.println(packet_received.length);     // Printing packet length
+                                      Serial.print(F("Data: "));
+                                      for(unsigned int i = 0; i < _payloadlength; i++)
+                                      {
+                                          Serial.print(packet_received.data[i]);    // Printing payload
+                                      }
+                                      Serial.println();
+                                      //Serial.print(F("Retry number: "));
+                                      //Serial.println(packet_received.retry);      // Printing number retry
+                                      Serial.println(F("##"));
+                                      Serial.println();
+                          #endif
             state = 0;
 
-#ifdef W_REQUESTED_ACK
-            // added by C. Pham
-            // need to send an ACK
-            if (packet_received.type & PKT_FLAG_ACK_REQ) {
-                state = 5;
-                _requestACK_indicator=1;
-            }
-            else
-                _requestACK_indicator=0;
-#endif
         }
     }
     else
@@ -4627,28 +4823,32 @@ int8_t SX1272::getPacket(uint16_t wait)
             // what is the purpose of incrementing retries here?
             // bug? not needed?
             _retries++;
-#if (SX1272_debug_mode > 0)
-            Serial.println(F("## Retrying to send the last packet ##"));
-            Serial.println();
-#endif
+                                  #if (SX1272_debug_mode > 0)
+                                              Serial.println(F("## Retrying to send the last packet ##"));
+                                              Serial.println();
+                                  #endif
         }
     }
+
+    
     if( _modem == LORA )
     {
         writeRegister(REG_FIFO_ADDR_PTR, 0x00);  // Setting address pointer in FIFO data buffer
     }
-    clearFlags();	// Initializing flags
+    clearFlags(); // Initializing flags
     if( wait > MAX_WAIT )
     {
         state = -1;
-#if (SX1272_debug_mode > 0)
-        Serial.println(F("** The timeout must be smaller than 12.5 seconds **"));
-        Serial.println();
-#endif
+                                  #if (SX1272_debug_mode > 0)
+                                          Serial.println(F("** The timeout must be smaller than 12.5 seconds **"));
+                                          Serial.println();
+                                  #endif
     }
 
     return state;
 }
+*/
+
 
 /*
  Function: It sets the packet destination.
@@ -6282,13 +6482,13 @@ uint8_t SX1272::getTemp()
 // Added by C. Pham
 //**********************************************************************/
 
-void SX1272::setPacketType(uint8_t type)
-{
-    packet_sent.type=type;
-
-    if (type & PKT_FLAG_ACK_REQ)
-        _requestACK=1;
-}
+//void SX1272::setPacketType(uint8_t type)
+//{
+//    packet_sent.type=type;
+//
+//    if (type & PKT_FLAG_ACK_REQ)
+//        _requestACK=1;
+//}
 
 /*
  Function: Configures the module to perform CAD.
@@ -6753,7 +6953,7 @@ int8_t SX1272::setSleepMode() {
 	
 	//delay(50);
 	
-    value = readRegister(REG_OP_MODE);
+   value = readRegister(REG_OP_MODE);
 
 	//Serial.print(F("## REG_OP_MODE 0x"));
 	//Serial.println(value, HEX);

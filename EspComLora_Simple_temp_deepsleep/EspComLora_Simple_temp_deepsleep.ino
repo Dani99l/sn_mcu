@@ -31,18 +31,13 @@
 
 */
 //#include <SPI.h>
-// Include the SX1272
-
 #include "SX1272.h"   //using RF95 modem
-#include <EEPROM.h>
 
 // IMPORTANT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // please uncomment only 1 choice
 //
 #define RADIO_RFM92_95
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // IMPORTANT
@@ -62,6 +57,7 @@
 ///////////////////////////////////////////////////////////////////
 
 unsigned int idlePeriodInMin = 2;
+String my_packet_str;
 
 
 #define PRINTLN                   Serial.println("")
@@ -75,25 +71,14 @@ unsigned int idlePeriodInMin = 2;
 
 unsigned long delayBeforeTransmit = 0;
 char float_str[20];
-uint8_t message[10]="123456789";
+char message[10]="test_123";
 int loraMode = LORAMODE;
 uint8_t packetNumber;
-
-//struct sx1272config {
-//
-//  uint8_t flag1;
-//  uint8_t flag2;
-//  uint8_t seq;
-//  // can add other fields such as LoRa mode,...
-//};
-
-//sx1272config my_sx1272config;
-
 uint8_t e;
-
+String mes;
 void setup()
 {
-  
+  delay(3000);
   Serial.begin(115200);
   PRINT_CSTSTR("%s", "TESTE\n");
 
@@ -105,40 +90,42 @@ void setup()
   PRINT_CSTSTR("%s", "Setting Mode: state ");
   PRINT_VALUE("%d", e);
   PRINTLN;
-
-  // enable carrier sense
-  //sx1272._enableCarrierSense = true;
-
-#ifdef BAND868
-  // Select frequency channel
-  e = sx1272.setChannel(CH_18_868);
-#endif
-  PRINT_CSTSTR("%s", "Setting Channel: state ");
-  PRINT_VALUE("%d", e);
-  PRINTLN;
-
-  // Select output power (Max, High or Low)
-#if defined RADIO_RFM92_95  || defined RADIO_INAIR9B
-  e = sx1272.setPower('x'); //14dBm
-#else
-  e = sx1272.setPower('M');
-#endif
-
-  PRINT_CSTSTR("%s", "Setting Power: state ");
-  PRINT_VALUE("%d", e);
-  PRINTLN;
-
-  // Set the node address and print the result
-  e = sx1272.setNodeAddress(node_addr);
-  PRINT_CSTSTR("%s", "Setting node addr: state ");
-  PRINT_VALUE("%d", e);
-  PRINTLN;
-
-//  // Print a success message
-//  PRINT_CSTSTR("%s", "SX1272 successfully configured\n");
-
+  e=1;
+  // Radio configurations
+  while(e!=0){
+    e = sx1272.setChannel(CH_18_868);
+    if(e==0){
+      Serial.print(F("Set Channel to 868.1 MHz"));
+    }
+  }
+ 
+  e=1;
+  while(e!=0){
+      e = sx1272.setPower('x'); //14dBm
+    if(e==0){
+      Serial.println(F("Set power to 14 dbm"));
+    }
+  }
+  
+  e=1;
+  while(e!=0){
+      e = sx1272.setMode(10);  //Set mode 10
+      if(e==0){
+        Serial.println(F("Set CR=5, SF=7, BW=500kHz"));
+      }
+  }
+  
+   e=1;
+  while(e!=0){
+      e = sx1272.setNodeAddress(node_addr);
+      if(e==0){
+        Serial.println("Set node address: ");
+        Serial.print(node_addr);
+      }
+  }
   delay(500);
 }
+
 
 char *ftoa(char *a, double f, int precision)
 {
@@ -157,64 +144,75 @@ char *ftoa(char *a, double f, int precision)
 
 void loop(void)
 {
-  long startSend;
-  long endSend;
-  uint8_t app_key_offset = 0;
-  int e;
+    
+    long startSend;
+    long endSend;
+    int e;
+    uint8_t r_size;
+    char messageUpdate[10];
+    if(packetNumber>250){
+      packetNumber=0;
+    }
+    message[0]='\0';
+    sprintf(message,"test_%d", packetNumber);
+  //  strcat(messageUpdate,message);
+    packetNumber++;
 
-  uint8_t r_size;
-    // messsage[0]=packetNumber;
-     packetNumber++;
-    //PRINT_CSTSTR("%s", "Sending ");
-    PRINT_STR("%s",(char*)(message));
-   PRINT_STR("%d" ,packetNumber);
-
+    Serial.println("Preparing to send: ");
+  //  Serial.write(messageUpdate);
+    Serial.write(message);
+    
+    PRINTLN;
+    PRINT_STR(" Packet Number %d" ,packetNumber);
     PRINTLN;
     r_size=sizeof(message);
-    PRINT_CSTSTR("%s", "Real payload size is ");
+    PRINT_CSTSTR("%s", "Packet payload size is ");
     PRINT_VALUE("%d", r_size);
     PRINTLN;
 
     int pl = r_size;
 
-   // sx1272.CarrierSense();
-
     startSend = millis();
-
-    // Send message to the gateway and print the result
-//    message[0]=packetNumber;
-//    message[1]=5;
-
-    e = sx1272.sendPacketTimeout(DEFAULT_DEST_ADDR, message, pl);
-
+//    e = sx1272.sendPacketTimeout(node_addr, messageUpdate);
+     e = sx1272.sendPacketTimeout(node_addr, message);
     endSend = millis();
 
-
-    // save packet number for next packet in case of reboot
-   // my_sx1272config.seq = sx1272._packetNumber;
 
     PRINT_CSTSTR("%s", "LoRa Sent in ");
     PRINT_VALUE("%ld", endSend - startSend);
     PRINTLN;
+    Serial.println("Payload lenght: ");
+    Serial.println(sx1272._payloadlength);
+    if(e==0){
+      PRINT_CSTSTR("%s", "Packet sent with success! ");
+      PRINT_VALUE("%d", e);
+      PRINTLN;
+          for(int i=0; i<sx1272._payloadlength; i++){
+              Serial.print(sx1272.packet_sent.data[i], DEC);
+              Serial.print(" ");
+           }
+          Serial.println("");
 
-    PRINT_CSTSTR("%s", "Packet sent, state ");
-    PRINT_VALUE("%d", e);
+    }
+    else{
+      Serial.println("Sending Packet ERROR!");
+    }
+    
     PRINTLN;
-
-    // use a random part also to avoid collision
-   // PRINT_VALUE("%ld", lastTransmissionTime);
+    PRINT_CSTSTR("%s", "Will send next value in 4s \n");
     PRINTLN;
-    PRINT_CSTSTR("%s", "Will send next value in\n");
-  //  lastTransmissionTime = millis();
-    delayBeforeTransmit = idlePeriodInMin * 60 * 1000 + random(15, 60) * 1000;
-    PRINT_VALUE("%ld", delayBeforeTransmit);
-    PRINTLN;
+    
+    sx1272.setSleepMode();
 
     delay(500);    
     delay(500);
     delay(500);
-
-  }
+    delay(500);
+    delay(500);    
+    delay(500);
+    delay(500);
+    delay(500);
+ }
 
 
 

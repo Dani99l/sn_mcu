@@ -1,4 +1,3 @@
-
 /*
  *  Library for LoRa 868 / 915MHz SX1272 LoRa module
  *
@@ -80,12 +79,12 @@ uint8_t sx1272_CAD_value[11]={0, 62, 31, 16, 16, 8, 9, 5, 3, 1, 1};
 SX1272::SX1272()
 {
     // Initialize class variables
-    _bandwidth = BW_125;
-    _codingRate = CR_5;
-    _spreadingFactor = SF_7;
-    _channel = CH_12_900;
+   // _bandwidth = BW_125;
+    //_codingRate = CR_5;
+  //  _spreadingFactor = SF_7;
+   // _channel = CH_12_900;
     _header = HEADER_ON;
-    _CRC = CRC_OFF;
+   // _CRC = CRC_OFF;
     _modem = LORA;
     _power = 15;
     _packetNumber = 0;
@@ -207,12 +206,9 @@ uint8_t SX1272::ON()
             Serial.println(F("Unrecognized transceiver"));
         }
     }
-    // end from single_chan_pkt_fwd by Thomas Telkamp
-
-    // added by C. Pham
-  //  RxChainCalibration();
 
     setMaxCurrent(0x1B);
+    
 #if (SX1272_debug_mode > 1)
     Serial.println(F("## Setting ON with maximum current supply ##"));
     Serial.println();
@@ -696,7 +692,7 @@ int8_t SX1272::setMode(uint8_t mode)
         setLORA();
     }
     writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// LoRa standby mode
-    mode=10;
+   // mode=10;
 
     switch (mode)
     {
@@ -4610,6 +4606,7 @@ int8_t SX1272::getPacket(uint16_t wait)
                 _requestACK_indicator=0;
 #endif
         }
+
     }
     else
     {
@@ -5228,17 +5225,19 @@ uint8_t SX1272::setPacket(uint8_t dest, char *payload)
         Serial.print(F("Packet length: "));
         Serial.println(packet_sent.length);			// Printing packet length
         Serial.print(F("Data: "));
-        for(unsigned int i = 0; i < _payloadlength; i++)
-        {
-            Serial.print((char)packet_sent.data[i]);		// Printing payload
-        }
+
         Serial.println();
         //Serial.print(F("Retry number: "));
         //Serial.println(packet_sent.retry);			// Printing retry number
         Serial.println(F("##"));
 #endif
     }
-
+        for(unsigned int i = 0; i < _payloadlength; i++)
+        {
+            Serial.print((char)packet_sent.data[i]);    // Printing payload
+            Serial.print(".");
+        }
+    Serial.println("");
     return state;
 }
 
@@ -5249,129 +5248,129 @@ uint8_t SX1272::setPacket(uint8_t dest, char *payload)
    state = 1  --> There has been an error while executing the command
    state = 0  --> The command has been executed with no errors
 */
-uint8_t SX1272::setPacket(uint8_t dest, uint8_t *payload)
-{
-    int8_t state = 2;
-    byte st0;
-
-#if (SX1272_debug_mode > 1)
-    Serial.println();
-    Serial.println(F("Starting 'setPacket'"));
-#endif
-
-    st0 = readRegister(REG_OP_MODE);	// Save the previous status
-    clearFlags();	// Initializing flags
-
-    if( _modem == LORA )
-    { // LoRa mode
-        writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// Stdby LoRa mode to write in FIFO
-    }
-    else
-    { // FSK mode
-        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);	// Stdby FSK mode to write in FIFO
-    }
-
-    _reception = CORRECT_PACKET;	// Updating incorrect value to send a packet (old or new)
-    if( _retries == 0 )
-    { // Sending new packet
-        state = setDestination(dest);	// Setting destination in packet structure
-        packet_sent.retry = _retries;
-        if( state == 0 )
-        {
-            state = setPayload(payload);
-        }
-    }
-    else
-    {
-        // comment by C. Pham
-        // why to increase the length here?
-        // bug?
-        if( _retries == 1 )
-        {
-            packet_sent.length++;
-        }
-        state = setPacketLength();
-        packet_sent.retry = _retries;
-#if (SX1272_debug_mode > 0)
-        Serial.print(F("** Retrying to send last packet "));
-        Serial.print(_retries, DEC);
-        Serial.println(F(" time **"));
-#endif
-    }
-
-    // added by C. Pham
-    // set the type to be a data packet
-    packet_sent.type |= PKT_TYPE_DATA;
-
-#ifdef W_REQUESTED_ACK
-    // added by C. Pham
-    // indicate that an ACK should be sent by the receiver
-    if (_requestACK)
-        packet_sent.type |= PKT_FLAG_ACK_REQ;
-#endif
-
-    writeRegister(REG_FIFO_ADDR_PTR, 0x80);  // Setting address pointer in FIFO data buffer
-    if( state == 0 )
-    {
-        state = 1;
-        // Writing packet to send in FIFO
-#ifdef W_NET_KEY
-        // added by C. Pham
-        packet_sent.netkey[0]=_my_netkey[0];
-        packet_sent.netkey[1]=_my_netkey[1];
-        //#if (SX1272_debug_mode > 0)
-        Serial.println(F("## Setting net key ##"));
-        //#endif
-        writeRegister(REG_FIFO, packet_sent.netkey[0]);
-        writeRegister(REG_FIFO, packet_sent.netkey[1]);
-#endif
-        // added by C. Pham
-        // we can skip the header for instance when we want to generate
-        // at a higher layer a LoRaWAN packet
-        if (!_rawFormat) {
-            writeRegister(REG_FIFO, packet_sent.dst); 		// Writing the destination in FIFO
-            // added by C. Pham
-            writeRegister(REG_FIFO, packet_sent.type); 		// Writing the packet type in FIFO
-            writeRegister(REG_FIFO, packet_sent.src);		// Writing the source in FIFO
-            writeRegister(REG_FIFO, packet_sent.packnum);	// Writing the packet number in FIFO
-        }
-        // commented by C. Pham
-        //writeRegister(REG_FIFO, packet_sent.length); 	// Writing the packet length in FIFO
-        for(unsigned int i = 0; i < _payloadlength; i++)
-        {
-            writeRegister(REG_FIFO, packet_sent.data[i]);  // Writing the payload in FIFO
-        }
-        // commented by C. Pham
-        //writeRegister(REG_FIFO, packet_sent.retry);		// Writing the number retry in FIFO
-        state = 0;
-#if (SX1272_debug_mode > 0)
-        Serial.println(F("## Packet set and written in FIFO ##"));
-        // Print the complete packet if debug_mode
-        Serial.println(F("## Packet to send: "));
-        Serial.print(F("Destination: "));
-        Serial.println(packet_sent.dst);			 	// Printing destination
-        Serial.print(F("Packet type: "));
-        Serial.println(packet_sent.type);			// Printing packet type
-        Serial.print(F("Source: "));
-        Serial.println(packet_sent.src);			 	// Printing source
-        Serial.print(F("Packet number: "));
-        Serial.println(packet_sent.packnum);			// Printing packet number
-        Serial.print(F("Packet length: "));
-        Serial.println(packet_sent.length);			// Printing packet length
-        Serial.print(F("Data: "));
-        for(unsigned int i = 0; i < _payloadlength; i++)
-        {
-            Serial.print((char)packet_sent.data[i]);		// Printing payload
-        }
-        Serial.println();
-        //Serial.print(F("Retry number: "));
-        //Serial.println(packet_sent.retry);			// Printing retry number
-        Serial.println(F("##"));
-#endif
-    }
-    writeRegister(REG_OP_MODE, st0);	// Getting back to previous status
-    return state;
-}
+//uint8_t SX1272::setPacket(uint8_t dest, uint8_t *payload)
+//{
+//    int8_t state = 2;
+//    byte st0;
+//
+//#if (SX1272_debug_mode > 1)
+//    Serial.println();
+//    Serial.println(F("Starting 'setPacket'"));
+//#endif
+//
+//    st0 = readRegister(REG_OP_MODE);	// Save the previous status
+//    clearFlags();	// Initializing flags
+//
+//    if( _modem == LORA )
+//    { // LoRa mode
+//        writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);	// Stdby LoRa mode to write in FIFO
+//    }
+//    else
+//    { // FSK mode
+//        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);	// Stdby FSK mode to write in FIFO
+//    }
+//
+//    _reception = CORRECT_PACKET;	// Updating incorrect value to send a packet (old or new)
+//    if( _retries == 0 )
+//    { // Sending new packet
+//        state = setDestination(dest);	// Setting destination in packet structure
+//        packet_sent.retry = _retries;
+//        if( state == 0 )
+//        {
+//            state = setPayload(payload);
+//        }
+//    }
+//    else
+//    {
+//        // comment by C. Pham
+//        // why to increase the length here?
+//        // bug?
+//        if( _retries == 1 )
+//        {
+//            packet_sent.length++;
+//        }
+//        state = setPacketLength();
+//        packet_sent.retry = _retries;
+//#if (SX1272_debug_mode > 0)
+//        Serial.print(F("** Retrying to send last packet "));
+//        Serial.print(_retries, DEC);
+//        Serial.println(F(" time **"));
+//#endif
+//    }
+//
+//    // added by C. Pham
+//    // set the type to be a data packet
+//    packet_sent.type |= PKT_TYPE_DATA;
+//
+//#ifdef W_REQUESTED_ACK
+//    // added by C. Pham
+//    // indicate that an ACK should be sent by the receiver
+//    if (_requestACK)
+//        packet_sent.type |= PKT_FLAG_ACK_REQ;
+//#endif
+//
+//    writeRegister(REG_FIFO_ADDR_PTR, 0x80);  // Setting address pointer in FIFO data buffer
+//    if( state == 0 )
+//    {
+//        state = 1;
+//        // Writing packet to send in FIFO
+//#ifdef W_NET_KEY
+//        // added by C. Pham
+//        packet_sent.netkey[0]=_my_netkey[0];
+//        packet_sent.netkey[1]=_my_netkey[1];
+//        //#if (SX1272_debug_mode > 0)
+//        Serial.println(F("## Setting net key ##"));
+//        //#endif
+//        writeRegister(REG_FIFO, packet_sent.netkey[0]);
+//        writeRegister(REG_FIFO, packet_sent.netkey[1]);
+//#endif
+//        // added by C. Pham
+//        // we can skip the header for instance when we want to generate
+//        // at a higher layer a LoRaWAN packet
+//        if (!_rawFormat) {
+//            writeRegister(REG_FIFO, packet_sent.dst); 		// Writing the destination in FIFO
+//            // added by C. Pham
+//            writeRegister(REG_FIFO, packet_sent.type); 		// Writing the packet type in FIFO
+//            writeRegister(REG_FIFO, packet_sent.src);		// Writing the source in FIFO
+//            writeRegister(REG_FIFO, packet_sent.packnum);	// Writing the packet number in FIFO
+//        }
+//        // commented by C. Pham
+//        //writeRegister(REG_FIFO, packet_sent.length); 	// Writing the packet length in FIFO
+//        for(unsigned int i = 0; i < _payloadlength; i++)
+//        {
+//            writeRegister(REG_FIFO, packet_sent.data[i]);  // Writing the payload in FIFO
+//        }
+//        // commented by C. Pham
+//        //writeRegister(REG_FIFO, packet_sent.retry);		// Writing the number retry in FIFO
+//        state = 0;
+//#if (SX1272_debug_mode > 0)
+//        Serial.println(F("## Packet set and written in FIFO ##"));
+//        // Print the complete packet if debug_mode
+//        Serial.println(F("## Packet to send: "));
+//        Serial.print(F("Destination: "));
+//        Serial.println(packet_sent.dst);			 	// Printing destination
+//        Serial.print(F("Packet type: "));
+//        Serial.println(packet_sent.type);			// Printing packet type
+//        Serial.print(F("Source: "));
+//        Serial.println(packet_sent.src);			 	// Printing source
+//        Serial.print(F("Packet number: "));
+//        Serial.println(packet_sent.packnum);			// Printing packet number
+//        Serial.print(F("Packet length: "));
+//        Serial.println(packet_sent.length);			// Printing packet length
+//        Serial.print(F("Data: "));
+//        for(unsigned int i = 0; i < _payloadlength; i++)
+//        {
+//            Serial.print((char)packet_sent.data[i]);		// Printing payload
+//        }
+//        Serial.println();
+//        //Serial.print(F("Retry number: "));
+//        //Serial.println(packet_sent.retry);			// Printing retry number
+//        Serial.println(F("##"));
+//#endif
+//    }
+//    writeRegister(REG_OP_MODE, st0);	// Getting back to previous status
+//    return state;
+//}
 
 /*
  Function: Configures the module to transmit information.
@@ -5554,10 +5553,10 @@ uint8_t SX1272::sendPacketTimeout(uint8_t dest, uint8_t *payload, uint16_t lengt
     uint8_t state = 2;
     uint8_t state_f = 2;
 
-#if (SX1272_debug_mode > 1)
-    Serial.println();
-    Serial.println(F("Starting 'sendPacketTimeout'"));
-#endif
+    #if (SX1272_debug_mode > 1)
+        Serial.println();
+        Serial.println(F("Starting 'sendPacketTimeout'"));
+    #endif
 
     state = truncPayload(length16);
     if( state == 0 )
@@ -6760,5 +6759,3 @@ int8_t SX1272::setSleepMode() {
 }
 
 SX1272 sx1272 = SX1272();
-
-

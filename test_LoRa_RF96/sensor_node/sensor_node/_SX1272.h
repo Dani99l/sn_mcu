@@ -1,29 +1,36 @@
-/*
- *  Library for LoRa 868 / 915MHz SX1272 LoRa module
- *  
- *  Copyright (C) Libelium Comunicaciones Distribuidas S.L. 
- *  http://www.libelium.com 
- *  
- *  This program is free software: you can redistribute it and/or modify 
- *  it under the terms of the GNU General Public License as published by 
- *  the Free Software Foundation, either version 3 of the License, or 
- *  (at your option) any later version. 
- *  
- *  This program is distributed in the hope that it will be useful, 
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of 
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License 
- *  along with this program.  If not, see http://www.gnu.org/licenses/. 
- *  
- *  Version:           1.1
- *  Design:            David Gascón 
- *  Implementation:    Covadonga Albiñana & Victor Boria
+
+
+/*! \file _SX1272.h
+    \brief Library for managing Semtech modules
+
+    Copyright (C) 2016 Libelium Comunicaciones Distribuidas S.L.
+    http://www.libelium.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 2.1 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+    Version:		3.0
+    Design:			David Gascón
+    Implementation:	Covadonga Albiñana, Yuri Carmona
  */
 
-#ifndef SX1272_h
-#define SX1272_h
+ /*! \def _SX1272_h
+    \brief The library flag
+
+ */
+
+#ifndef _SX1272_h
+#define _SX1272_h
 
 /******************************************************************************
  * Includes
@@ -31,51 +38,52 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <pins_arduino.h>
+
 #include <Arduino.h>
+
 #include <SPI.h>
 
 #ifndef inttypes_h
-	#include <inttypes.h>
+  #include <inttypes.h>
 #endif
+
 
 /******************************************************************************
  * Definitions & Declarations
  *****************************************************************************/
 
-// added by C. Pham
-//#define W_REQUESTED_ACK
-//#define W_NET_KEY
-//#define W_INITIALIZATION
-#define SX1272_RST  3
+#define PRINTLN                   Serial.println("")
+#define PRINT_CSTSTR(fmt,param)   Serial.print(F(param))
+#define printString(fmt,param)      Serial.print(param)
+#define printByte(fmt,param)    Serial.print(param)
+#define printIntegerInBase(fmt,param, pa)    Serial.print(param)
+#define puthex(param,fmt)    Serial.print(param,HEX)
+#define printHex(param)    print(param, HEX)
 
-
-//#if defined ARDUINO_AVR_PRO || defined ARDUINO_AVR_NANO || defined ARDUINO_AVR_MINI || defined __MK20DX256__
-//#define SX1272_SS 10
-//#else
-#define SX1272_SS 16      //original 2, for esp8266 15
-//#endif
+#define SOCKET0_SELECT 15
+#define SOCKET0 15
 
 #define MOSI 13
 #define MISO 12
 #define SCK 14
 
-#define SX1272Chip  0
-#define SX1276Chip  1
-// end
-
 #define SX1272_debug_mode 3
+
+#define WASPMOTE_GATEWAY_FOR_MESHLIUM
 
 //! MACROS //
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)  // read a bit
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))    // set bit to '1'
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit))) // set bit to '0'
 
+
 //! REGISTERS //
 
 #define        REG_FIFO        					0x00
-#define        REG_OP_MODE        			0x01
-#define        REG_BITRATE_MSB    			0x02
-#define        REG_BITRATE_LSB    			0x03
+#define        REG_OP_MODE        				0x01
+#define        REG_BITRATE_MSB    				0x02
+#define        REG_BITRATE_LSB    				0x03
 #define        REG_FDEV_MSB   					0x04
 #define        REG_FDEV_LSB    					0x05
 #define        REG_FRF_MSB    					0x06
@@ -133,9 +141,6 @@
 #define        REG_PREAMBLE_MSB_FSK 			0x25
 #define        REG_FIFO_RX_BYTE_ADDR 			0x25
 #define        REG_PREAMBLE_LSB_FSK 			0x26
-// added by C. Pham
-#define        REG_MODEM_CONFIG3	  			0x26
-// end
 #define        REG_SYNC_CONFIG	  				0x27
 #define        REG_SYNC_VALUE1	 				0x28
 #define        REG_SYNC_VALUE2	  				0x29
@@ -147,18 +152,15 @@
 #define        REG_SYNC_VALUE8	  				0x2F
 #define        REG_PACKET_CONFIG1	  			0x30
 #define        REG_PACKET_CONFIG2	  			0x31
-#define        REG_DETECT_OPTIMIZE              0x31
+#define        REG_DETECT_OPTIMIZE	  			0x31
 #define        REG_PAYLOAD_LENGTH_FSK			0x32
 #define        REG_NODE_ADRS	  				0x33
 #define        REG_BROADCAST_ADRS	 		 	0x34
 #define        REG_FIFO_THRESH	  				0x35
 #define        REG_SEQ_CONFIG1	  				0x36
 #define        REG_SEQ_CONFIG2	  				0x37
-#define        REG_DETECTION_THRESHOLD          0x37
+#define        REG_DETECTION_THRESHOLD 			0x37
 #define        REG_TIMER_RESOL	  				0x38
-// added by C. Pham
-#define        REG_SYNC_WORD                    0x39
-//end
 #define        REG_TIMER1_COEF	  				0x39
 #define        REG_TIMER2_COEF	  				0x3A
 #define        REG_IMAGE_CAL	  				0x3B
@@ -181,59 +183,18 @@
 #define        REG_FORMER_TEMP	  				0x6C
 #define        REG_BIT_RATE_FRAC	  			0x70
 
-// added by C. Pham
-// copied from LoRaMAC-Node
-/*!
- * RegImageCal
- */
-#define RF_IMAGECAL_AUTOIMAGECAL_MASK               0x7F
-#define RF_IMAGECAL_AUTOIMAGECAL_ON                 0x80
-#define RF_IMAGECAL_AUTOIMAGECAL_OFF                0x00  // Default
-
-#define RF_IMAGECAL_IMAGECAL_MASK                   0xBF
-#define RF_IMAGECAL_IMAGECAL_START                  0x40
-
-#define RF_IMAGECAL_IMAGECAL_RUNNING                0x20
-#define RF_IMAGECAL_IMAGECAL_DONE                   0x00  // Default
-
-#define RF_IMAGECAL_TEMPCHANGE_HIGHER               0x08
-#define RF_IMAGECAL_TEMPCHANGE_LOWER                0x00
-
-#define RF_IMAGECAL_TEMPTHRESHOLD_MASK              0xF9
-#define RF_IMAGECAL_TEMPTHRESHOLD_05                0x00
-#define RF_IMAGECAL_TEMPTHRESHOLD_10                0x02  // Default
-#define RF_IMAGECAL_TEMPTHRESHOLD_15                0x04
-#define RF_IMAGECAL_TEMPTHRESHOLD_20                0x06
-
-#define RF_IMAGECAL_TEMPMONITOR_MASK                0xFE
-#define RF_IMAGECAL_TEMPMONITOR_ON                  0x00 // Default
-#define RF_IMAGECAL_TEMPMONITOR_OFF                 0x01
-
-// added by C. Pham
-// The crystal oscillator frequency of the module
-#define RH_LORA_FXOSC 32000000.0
- 
-// The Frequency Synthesizer step = RH_LORA_FXOSC / 2^^19
-#define RH_LORA_FCONVERT  (524288 / RH_LORA_FXOSC)
-
-// Frf = frf(Hz)*2^19/RH_LORA_FXOSC
-
-/////
-
 //FREQUENCY CHANNELS:
 const uint32_t CH_10_868 = 0xD84CCC; // channel 10, central freq = 865.20MHz
-									 // = 865200000*RH_LORA_FCONVERT
 const uint32_t CH_11_868 = 0xD86000; // channel 11, central freq = 865.50MHz
 const uint32_t CH_12_868 = 0xD87333; // channel 12, central freq = 865.80MHz
 const uint32_t CH_13_868 = 0xD88666; // channel 13, central freq = 866.10MHz
 const uint32_t CH_14_868 = 0xD89999; // channel 14, central freq = 866.40MHz
 const uint32_t CH_15_868 = 0xD8ACCC; // channel 15, central freq = 866.70MHz
 const uint32_t CH_16_868 = 0xD8C000; // channel 16, central freq = 867.00MHz
-const uint32_t CH_17_868 = 0xD90000; // channel 17, central freq = 868.00MHz
+const uint32_t CH_17_868 = 0xD90000; // channel 16, central freq = 868.00MHz
 
-// added by C. Pham
 const uint32_t CH_18_868 = 0xD90666; // 868.1MHz for LoRaWAN test
-// end
+
 const uint32_t CH_00_900 = 0xE1C51E; // channel 00, central freq = 903.08MHz
 const uint32_t CH_01_900 = 0xE24F5C; // channel 01, central freq = 905.24MHz
 const uint32_t CH_02_900 = 0xE2D999; // channel 02, central freq = 907.40MHz
@@ -246,27 +207,12 @@ const uint32_t CH_08_900 = 0xE6170A; // channel 08, central freq = 920.36MHz
 const uint32_t CH_09_900 = 0xE6A147; // channel 09, central freq = 922.52MHz
 const uint32_t CH_10_900 = 0xE72B85; // channel 10, central freq = 924.68MHz
 const uint32_t CH_11_900 = 0xE7B5C2; // channel 11, central freq = 926.84MHz
-const uint32_t CH_12_900 = 0xE4C000; // default channel 915MHz, the module is configured with it
+const uint32_t CH_12_900 = 0xE4C000; // default channel 915MHz
 
 //LORA BANDWIDTH:
-// modified by C. Pham
-const uint8_t SX1272_BW_125 = 0x00;
-const uint8_t SX1272_BW_250 = 0x01;
-const uint8_t SX1272_BW_500 = 0x02;
-
-// use the following constants with setBW()
-const uint8_t BW_7_8 = 0x00;
-const uint8_t BW_10_4 = 0x01;
-const uint8_t BW_15_6 = 0x02;
-const uint8_t BW_20_8 = 0x03;
-const uint8_t BW_31_25 = 0x04;
-const uint8_t BW_41_7 = 0x05;
-const uint8_t BW_62_5 = 0x06;
-const uint8_t BW_125 = 0x07;
-const uint8_t BW_250 = 0x08;
-const uint8_t BW_500 = 0x09;
-// end
-
+const uint8_t BW_125 = 0x00;
+const uint8_t BW_250 = 0x01;
+const uint8_t BW_500 = 0x02;
 const double SignalBwLog[] =
 {
     5.0969100130080564143587833158265,
@@ -275,10 +221,10 @@ const double SignalBwLog[] =
 };
 
 //LORA CODING RATE:
-const uint8_t CR_5 = 0x01;
-const uint8_t CR_6 = 0x02;
-const uint8_t CR_7 = 0x03;
-const uint8_t CR_8 = 0x04;
+const uint8_t CR_5 = 0x01;	// CR = 4/5
+const uint8_t CR_6 = 0x02;	// CR = 4/6
+const uint8_t CR_7 = 0x03;	// CR = 4/7
+const uint8_t CR_8 = 0x04;	// CR = 4/8
 
 //LORA SPREADING FACTOR:
 const uint8_t SF_6 = 0x06;
@@ -294,14 +240,6 @@ const uint8_t LORA_SLEEP_MODE = 0x80;
 const uint8_t LORA_STANDBY_MODE = 0x81;
 const uint8_t LORA_TX_MODE = 0x83;
 const uint8_t LORA_RX_MODE = 0x85;
-
-// added by C. Pham
-const uint8_t LORA_CAD_MODE = 0x87;
-#define LNA_MAX_GAIN                0x23
-#define LNA_OFF_GAIN                0x00
-#define LNA_LOW_GAIN		    0x20
-// end
-
 const uint8_t LORA_STANDBY_FSK_REGS_MODE = 0xC1;
 
 //FSK MODES:
@@ -312,6 +250,8 @@ const uint8_t FSK_RX_MODE = 0x05;
 
 //OTHER CONSTANTS:
 
+const uint8_t st_SD_ON = 1;
+const uint8_t st_SD_OFF = 0;
 const uint8_t HEADER_ON = 0;
 const uint8_t HEADER_OFF = 1;
 const uint8_t CRC_ON = 1;
@@ -323,61 +263,27 @@ const uint8_t MAX_LENGTH = 255;
 const uint8_t MAX_PAYLOAD = 251;
 const uint8_t MAX_LENGTH_FSK = 64;
 const uint8_t MAX_PAYLOAD_FSK = 60;
-//modified by C. Pham, 7 instead of 5 because we added a type field which should be PKT_TYPE_ACK and the SNR
-const uint8_t ACK_LENGTH = 7;
-// added by C. Pham
-#ifdef W_NET_KEY
-const uint8_t NET_KEY_LENGTH=2;
-const uint8_t OFFSET_PAYLOADLENGTH = 4+NET_KEY_LENGTH;
-const uint8_t net_key_0 = 0x12;
-const uint8_t net_key_1 = 0x34;
-#else
-// modified by C. Pham to remove the retry field and the length field
-// which will be replaced by packet type field
-const uint8_t OFFSET_PAYLOADLENGTH = 4;
-#endif
+const uint8_t ACK_LENGTH = 5;
+const uint8_t OFFSET_PAYLOADLENGTH = 5;
 const uint8_t OFFSET_RSSI = 137;
 const uint8_t NOISE_FIGURE = 6.0;
 const uint8_t NOISE_ABSOLUTE_ZERO = 174.0;
-const uint16_t MAX_TIMEOUT = 8000;		//8000 msec = 8.0 sec
-const uint16_t MAX_WAIT = 12000;		//12000 msec = 12.0 sec
+const uint16_t MAX_TIMEOUT = 500;		//10000 msec = 10.0 sec
+const uint32_t MAX_WAIT = 12000;		//12000 msec = 12.0 sec
+const uint32_t MESH_TIMEOUT = 3600000;  //3600000 msec = 3600 sec = 1 hour
 const uint8_t MAX_RETRIES = 5;
 const uint8_t CORRECT_PACKET = 0;
 const uint8_t INCORRECT_PACKET = 1;
-
-// added by C. Pham
-// Packet type definition
-
-#define PKT_TYPE_MASK   0xF0
-#define PKT_FLAG_MASK   0x0F
-
-#define PKT_TYPE_DATA   0x10
-#define PKT_TYPE_ACK    0x20
-
-#define PKT_FLAG_ACK_REQ            0x08
-#define PKT_FLAG_DATA_ENCRYPTED     0x04
-#define PKT_FLAG_DATA_WAPPKEY       0x02
-#define PKT_FLAG_DATA_ISBINARY      0x01
 
 //! Structure :
 /*!
  */
 struct pack
 {
-	// added by C. Pham
-#ifdef W_NET_KEY	
-	uint8_t netkey[NET_KEY_LENGTH];
-#endif	
 	//! Structure Variable : Packet destination
 	/*!
  	*/
 	uint8_t dst;
-
-    // added by C. Pham
-    //! Structure Variable : Packet type
-    /*!
-    */
-    uint8_t type;
 
 	//! Structure Variable : Packet source
 	/*!
@@ -389,8 +295,6 @@ struct pack
  	*/
 	uint8_t packnum;
 
-    // modified by C. Pham
-    // will not be used in the transmitted packet
 	//! Structure Variable : Packet length
 	/*!
  	*/
@@ -401,8 +305,6 @@ struct pack
  	*/
 	uint8_t data[MAX_PAYLOAD];
 
-    // modified by C. Pham
-    // will not be used in the transmitted packet
 	//! Structure Variable : Retry number
 	/*!
  	*/
@@ -413,28 +315,28 @@ struct pack
  * Class
  ******************************************************************************/
 
-//! SX1272 Class
+//! _SX1272 Class
 /*!
-	SX1272 Class defines all the variables and functions used to manage
-	SX1272 modules.
+	_SX1272 Class defines all the variables and functions used to manage
+	SX1272 modules. It inherits from 'WaspXBeeCore' class the necessary
+	functions, variables and definitions
  */
-class SX1272
+class _SX1272
 {
 
 public:
 
 	//! class constructor
   	/*!
-	It does nothing
 	\param void
 	\return void
   	 */
-   	SX1272();
-
+  void CONFIGMODEM();
+   	
 	//! It puts the module ON
   	/*!
 	\param void
-	\return uint8_t setLORA state
+	\return void
 	 */
 	uint8_t ON();
 
@@ -652,7 +554,7 @@ public:
 	output power signal.
 	\return '0' on success, '1' otherwise
 	 */
-	int8_t setPower(char p);
+	int8_t setPower(char p, char q);
 
 	//! It sets the output power of the signal.
   	/*!
@@ -783,7 +685,8 @@ public:
 	 */
 	uint8_t getRegs();
 
-	//! It sets the maximum number of bytes from a frame that fit in a packet structure.
+	//! It sets the maximum number of bytes from a frame that fit in a packet 
+	//! structure.
 	/*!
 	It stores in global '_payloadlength' variable the maximum number of bytes.
   	\param uint16_t length16 : total frame length.
@@ -821,10 +724,10 @@ public:
 
 	//! It receives a packet before a timeout.
   	/*!
-  	\param uint16_t wait : time to wait to receive something.
+  	\param uint32_t wait : time to wait to receive something.
 	\return '0' on success, '1' otherwise
 	 */
-	uint8_t receivePacketTimeout(uint16_t wait);
+	uint8_t receivePacketTimeout(uint32_t wait);
 
 	//! It receives a packet before MAX_TIMEOUT and reply with an ACK.
   	/*!
@@ -842,10 +745,10 @@ public:
 
 	//! It receives a packet before a timeout and reply with an ACK.
   	/*!
-  	\param uint16_t wait : time to wait to receive something.
+  	\param uint32_t wait : time to wait to receive something.
 	\return '0' on success, '1' otherwise
 	 */
-	uint8_t receivePacketTimeoutACK(uint16_t wait);
+	uint8_t receivePacketTimeoutACK(uint32_t wait);
 
 	//! It puts the module in 'promiscuous' reception mode.
   	/*!
@@ -856,10 +759,10 @@ public:
 
 	//! It puts the module in 'promiscuous' reception mode with a timeout.
   	/*!
-  	\param uint16_t wait : time to wait to receive something.
+  	\param uint32_t wait : time to wait to receive something.
 	\return '0' on success, '1' otherwise
 	 */
-	uint8_t receiveAll(uint16_t wait);
+	uint8_t receiveAll(uint32_t wait);
 
 	//! It checks if there is an available packet and its destination.
   	/*!
@@ -868,13 +771,15 @@ public:
 	 */
 	boolean	availableData();
 
-	//! It checks if there is an available packet and its destination before a timeout.
+	//! It checks if there is an available packet and its destination before a 
+	//! timeout.
   	/*!
   	 *
-  	\param uint16_t wait : time to wait while there is no a valid header received.
+  	\param uint32_t wait : time to wait while there is no a valid header 
+  	received.
 	\return 'true' on success, 'false' otherwise
 	 */
-	boolean	availableData(uint16_t wait);
+	boolean	availableData(uint32_t wait);
 
 	//! It writes a packet in FIFO in order to send it.
 	/*!
@@ -892,27 +797,31 @@ public:
 	*/
 	uint8_t setPacket(uint8_t dest, uint8_t *payload);
 
-	//! It reads a received packet from the FIFO, if it arrives before ending MAX_TIMEOUT time.
+	//! It reads a received packet from the FIFO, if it arrives before ending 
+	//! MAX_TIMEOUT time.
 	/*!
 	 *
 	\return '0' on success, '1' otherwise
 	*/
 	uint8_t getPacketMAXTimeout();
 
-	//! It reads a received packet from the FIFO, if it arrives before ending '_sendTime' time.
+	//! It reads a received packet from the FIFO, if it arrives before ending 
+	//! '_sendTime' time.
 	/*!
 	 *
 	\return '0' on success, '1' otherwise
 	*/
 	int8_t getPacket();
 
-	//! It receives and gets a packet from FIFO, if it arrives before ending 'wait' time.
+	//! It receives and gets a packet from FIFO, if it arrives before ending 
+	//! 'wait' time.
 	/*!
 	 *
-	\param uint16_t wait : time to wait while there is no a complete packet received.
+	\param uint32_t wait : time to wait while there is not a complete packet 
+	received.
 	\return '0' on success, '1' otherwise
 	*/
-	int8_t getPacket(uint16_t wait);
+	int8_t getPacket(uint32_t wait);
 
 	//! It sends the packet stored in FIFO before ending MAX_TIMEOUT.
 	/*!
@@ -930,117 +839,205 @@ public:
 
 	//! It tries to send the packet stored in FIFO before ending 'wait' time.
 	/*!
-	\param uint16_t wait : time to wait to send the packet.
+	\param uint32_t wait : time to wait to send the packet.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendWithTimeout(uint16_t wait);
+	uint8_t sendWithTimeout(uint32_t wait);
 
-	//! It tries to send the packet wich payload is a parameter before ending MAX_TIMEOUT.
+	//! It tries to send the packet which payload is a parameter before ending 
+	//! MAX_TIMEOUT.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketMAXTimeout(uint8_t dest, char *payload);
+	uint8_t sendPacketMAXTimeout(	uint8_t dest, 
+									char *payload);
 
-	//! It tries to send the packet wich payload is a parameter before ending MAX_TIMEOUT.
+	//! It tries to send the packet which payload is a parameter before ending 
+	//! MAX_TIMEOUT.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload : packet payload.
 	\param uint16_t length : payload buffer length.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketMAXTimeout(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketMAXTimeout(	uint8_t dest, 
+									uint8_t *payload, 
+									uint16_t length);
 
 
-	//! It sends the packet wich payload is a parameter before ending MAX_TIMEOUT.
+	//! It sends the packet which payload is a parameter before ending 
+	//! MAX_TIMEOUT.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeout(uint8_t dest, char *payload);
+	uint8_t sendPacketTimeout(	uint8_t dest, 
+								char *payload);
 
-	//! It sends the packet wich payload is a parameter before ending MAX_TIMEOUT.
+	//! It sends the packet which payload is a parameter before ending 
+	//! MAX_TIMEOUT.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload: packet payload.
 	\param uint16_t length : payload buffer length.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeout(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketTimeout(	uint8_t dest, 
+								uint8_t *payload, 
+								uint16_t length);
 
-	//! It sends the packet wich payload is a parameter before ending 'wait' time.
+	//! It sends the packet which payload is a parameter before ending 'wait' 
+	//! time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
-	\param uint16_t wait : time to wait.
+	\param uint32_t wait : time to wait.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeout(uint8_t dest, char *payload, uint16_t wait);
+	uint8_t sendPacketTimeout(	uint8_t dest, 
+								char *payload, 
+								uint32_t wait);
 
-	//! It sends the packet wich payload is a parameter before ending 'wait' time.
+	//! It sends the packet which payload is a parameter before ending 'wait' 
+	//! time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload : packet payload.
 	\param uint16_t length : payload buffer length.
-	\param uint16_t wait : time to wait.
+	\param uint32_t wait : time to wait.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeout(uint8_t dest, uint8_t *payload, uint16_t length, uint16_t wait);
+	uint8_t sendPacketTimeout(	uint8_t dest, 
+								uint8_t *payload, 
+								uint16_t length, 
+								uint32_t wait);
 
-	//! It sends the packet wich payload is a parameter before MAX_TIMEOUT, and replies with ACK.
+	//! It sends the packet which payload is a parameter before MAX_TIMEOUT, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
-	\return '0' on success, '1' otherwise
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketMAXTimeoutACK(uint8_t dest, char *payload);
+	uint8_t sendPacketMAXTimeoutACK(uint8_t dest, 
+									char *payload);
 
-	//! It sends the packet wich payload is a parameter before MAX_TIMEOUT, and replies with ACK.
+	//! It sends the packet which payload is a parameter before MAX_TIMEOUT, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t payload: packet payload.
 	\param uint16_t length : payload buffer length.
-	\return '0' on success, '1' otherwise
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketMAXTimeoutACK(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketMAXTimeoutACK(uint8_t dest, 
+									uint8_t *payload, 
+									uint16_t length);
 
-	//! It sends the packet wich payload is a parameter before a timeout, and replies with ACK.
+	//! It sends the packet which payload is a parameter before a timeout, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
-	\return '0' on success, '1' otherwise
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketTimeoutACK(uint8_t dest, char *payload);
+	uint8_t sendPacketTimeoutACK(	uint8_t dest, 
+									char *payload);
 
-	//! It sends the packet wich payload is a parameter before a timeout, and replies with ACK.
+	//! It sends the packet which payload is a parameter before a timeout, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t payload: packet payload.
 	\param uint16_t length : payload buffer length.
-	\return '0' on success, '1' otherwise
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketTimeoutACK(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketTimeoutACK(	uint8_t dest, 
+									uint8_t *payload, 
+									uint16_t length);
 
-	//! It sends the packet wich payload is a parameter before 'wait' time, and replies with ACK.
+	//! It sends the packet which payload is a parameter before 'wait' time, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
-	\param uint16_t wait : time to wait to send the packet.
-	\return '0' on success, '1' otherwise
+	\param uint32_t wait : time to wait to send the packet.
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketTimeoutACK(uint8_t dest, char *payload, uint16_t wait);
+	uint8_t sendPacketTimeoutACK(	uint8_t dest, 
+									char *payload,
+									uint32_t wait);
 
-	//! It sends the packet wich payload is a parameter before 'wait' time, and replies with ACK.
+	//! It sends the packet which payload is a parameter before 'wait' time, 
+	//! and replies with ACK.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t payload: packet payload.
 	\param uint16_t length : payload buffer length.
-	\param uint16_t wait : time to wait to send the packet.
-	\return '0' on success, '1' otherwise
+	\param uint32_t wait : time to wait to send the packet.
+	\return '9'  --> The ACK lost (no data available)
+			'8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t sendPacketTimeoutACK(uint8_t dest, uint8_t *payload, uint16_t length, uint16_t wait);
+	uint8_t sendPacketTimeoutACK(uint8_t dest, 
+									uint8_t *payload, 
+									uint16_t length, 
+									uint32_t wait);
 
 	//! It sets the destination of a packet.
   	/*!
@@ -1055,6 +1052,14 @@ public:
 	\return '0' on success, '1' otherwise
 	 */
 	uint8_t setTimeout();
+	
+	//! It gets the theoretical value of the time-on-air of the packet
+  	/*! \remarks http://www.semtech.com/images/datasheet/sx1272.pdf
+   	It stores in global '_sendTime' variable the time for each mode.
+	\return float: time on air depending on module settings and packet length
+	 */
+	float timeOnAir();
+	float timeOnAir( uint16_t payloadlength );
 
 	//! It sets the payload of the packet that is going to be sent.
   	/*!
@@ -1073,70 +1078,102 @@ public:
 	//! If an ACK is received, it gets it and checks its content.
 	/*!
 	 *
-	\return '0' on success, '1' otherwise
+	\return '8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
 	uint8_t getACK();
 
- 	//! It receives and gets an ACK from FIFO, if it arrives before ending 'wait' time.
+ 	//! It receives and gets an ACK from FIFO, if it arrives before ending 
+ 	//! 'wait' time.
 	/*!
 	 *
-	\param uint16_t wait : time to wait while there is no an ACK received.
-	\return '0' on success, '1' otherwise
+	\param uint32_t wait : time to wait while there is no an ACK received.
+	\return '8'  --> The ACK lost
+			'7'  --> The ACK destination incorrectly received
+			'6'  --> The ACK source incorrectly received
+			'5'  --> The ACK number incorrectly received
+			'4'  --> The ACK length incorrectly received
+			'3'  --> N-ACK received
+			'2'  --> The ACK has not been received
+			'1'  --> not used (reserved)
+			'0'  --> The ACK has been received with no errors
 	*/
-	uint8_t getACK(uint16_t wait);
+	uint8_t getACK(uint32_t wait);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value, before ending MAX_TIMEOUT time.
+	//! It sends a packet, waits to receive an ACK and updates the _retries 
+	//! value, before ending MAX_TIMEOUT time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketMAXTimeoutACKRetries(uint8_t dest, char *payload);
+	uint8_t sendPacketMAXTimeoutACKRetries(uint8_t dest, 
+											char *payload);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value, before ending MAX_TIMEOUT time.
+	//! It sends a packet, waits to receive an ACK and updates the _retries 
+	//! value, before ending MAX_TIMEOUT time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload : packet payload.
 	\param uint16_t length : payload buffer length.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketMAXTimeoutACKRetries(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketMAXTimeoutACKRetries(	uint8_t dest, 
+											uint8_t *payload, 
+											uint16_t length);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value.
+	//! It sends a packet, waits to receive an ACK and updates the _retries value
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, char *payload);
+	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, 
+										char *payload);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value.
+	//! It sends a packet, waits to receive an ACK and updates the _retries value
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload : packet payload.
 	\param uint16_t length : payload buffer length.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, uint8_t *payload, uint16_t length);
+	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, 
+										uint8_t *payload, 
+										uint16_t length);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value, before ending 'wait' time.
+	//! It sends a packet, waits to receive an ACK and updates the _retries 
+	//! value, before ending 'wait' time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param char *payload : packet payload.
-	\param uint16_t wait : time to wait while trying to send the packet.
+	\param uint32_t wait : time to wait while trying to send the packet.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, char *payload, uint16_t wait);
+	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, 
+										char *payload, 
+										uint32_t wait);
 
-	//! It sends a packet, waits to receive an ACK and updates the _retries value, before ending 'wait' time.
+	//! It sends a packet, waits to receive an ACK and updates the _retries 
+	//! value, before ending 'wait' time.
 	/*!
 	\param uint8_t dest : packet destination.
 	\param uint8_t *payload : packet payload.
 	\param uint16_t length : payload buffer length.
-	\param uint16_t wait : time to wait while trying to send the packet.
+	\param uint32_t wait : time to wait while trying to send the packet.
 	\return '0' on success, '1' otherwise
 	*/
-	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, uint8_t *payload, uint16_t length, uint16_t wait);
+	uint8_t sendPacketTimeoutACKRetries(uint8_t dest, 
+										uint8_t *payload, 
+										uint16_t length, 
+										uint32_t wait);
 
 	//! It gets the internal temperature of the module.
 	/*!
@@ -1145,45 +1182,64 @@ public:
 	*/
 	uint8_t getTemp();
 
-    // added by C. Pham
-    void setPacketType(uint8_t type);
-    void RxChainCalibration();
-    uint8_t doCAD(uint8_t counter);
-    uint16_t getToA(uint8_t pl);
-    void CarrierSense();
-    int8_t setSyncWord(uint8_t sw);
-    int8_t getSyncWord();
-    int8_t setSleepMode();
-
-    // SX1272 or SX1276?
-    uint8_t _board;
-    uint8_t _syncWord;
-    uint8_t _defaultSyncWord;
-    unsigned long _starttime;
-    unsigned long _stoptime;
-    unsigned long _startDoCad;
-    unsigned long _endDoCad;
-    uint8_t _loraMode;
-    uint8_t _send_cad_number;
-    bool _extendedIFS;
-    bool _RSSIonSend;
-    bool _enableCarrierSense;
-    bool _rawFormat;
-    int8_t _rcv_snr_in_ack;
-
-#ifdef W_REQUESTED_ACK
-	uint8_t _requestACK;
-	uint8_t _requestACK_indicator;
-#endif
-
-#ifdef W_NET_KEY
-	uint8_t _my_netkey[NET_KEY_LENGTH];
-        uint8_t _the_net_key_0;
-        uint8_t _the_net_key_1;
-#endif
-	// end
+	//! It shows te received packet via USB port
+	/*!
+	 * \return void
+	*/
+	void showReceivedPacket();
 	
+	//! It shows te received Waspmote Frame via USB port
+	/*!
+	 * \return void
+	*/
+	void showFramefromPacket();
+	
+	//! It prints the registers related to RX via USB
+	/*!
+	 * \return void
+	*/
+	void showRxRegisters();	
+	
+	//! It sets the RTC settings with Meshlium timestamp configuration
+	/*! This function sends a special Frame to Meshlium (Meshlium's address must 
+	 * be '1'), and then Meshlium returns an answer with the timestamp. This 
+	 * function parses the info and sets the RTC Time and Date. 
+	 * \return  '0' on success, '1' otherwise
+	*/
+	uint8_t setRTCfromMeshlium();
+	
+	//! It sets the RTC settings with Meshlium timestamp configuration
+	/*! This function sends a special Frame to Meshlium (Meshlium's address must 
+	 * be '1'), and then Meshlium returns an answer with the timestamp. This 
+	 * function parses the info and sets the RTC Time and Date. 
+	 * \return  'true' on cad detected, 'false' if not detected
+	*/
+	bool cadDetected();
+
+
+  //! Set SLEEP MODE register 
+  /* 
+   *  
+   *  
+   *  
+   */
+  void setSleepMode();
+
+
+
+#ifdef WASPMOTE_GATEWAY_FOR_MESHLIUM
+	uint8_t showFramefromPacketMeshlium();
+#endif
+
+
 	/// Variables /////////////////////////////////////////////////////////////
+
+	//! Variable : SD state.
+	//!    st_SD = 00  --> SD_OFF
+	//!    st_SD = 01  --> SD_ON
+  	/*!
+   	*/
+	uint8_t st_SD;
 
 	//! Variable : bandwidth configured in LoRa mode.
 	//!    bandwidth = 00  --> BW = 125KHz
@@ -1334,7 +1390,7 @@ public:
    	*/
    	uint8_t _maxCurrent;
 
-	//! Variable : indicates FSK or LoRa 'modem'.
+	//! Variable : indicates FSK or LoRa modem.
 	//!
   	/*!
    	*/
@@ -1372,6 +1428,6 @@ public:
 
 };
 
-extern SX1272	sx1272;
+extern _SX1272	sx1272;
 
 #endif

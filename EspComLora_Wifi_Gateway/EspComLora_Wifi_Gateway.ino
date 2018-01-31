@@ -46,148 +46,162 @@ WiFiClient client;
 String my_packet_str;
 void setup()
 {
-  int nCnt = 0;
-   // Open serial communications and wait for port to open:
-  Serial.begin(115200);
-     
-  WiFi.begin(ssid, password);
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+      int nCnt = 0;
+       // Open serial communications and wait for port to open:
+       delay(100);
+      Serial.begin(115200);
+      delay(100);
+    //  WiFi.begin(ssid, password);
+      Serial.println();
+      Serial.println();
    
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-    nCnt ++;
-    if(nCnt > 20) break;
+    //  Serial.print("Connecting to ");
+    //  Serial.println(ssid);
+    //   
+    //  while (WiFi.status() != WL_CONNECTED) {
+    //    delay(1000);
+    //    Serial.print(".");
+    //    nCnt ++;
+    //    if(nCnt > 10) break;
+    //  }
+    //  
+    //  if(WiFi.status() == WL_CONNECTED){
+    //    Serial.println("");
+    //    Serial.println("WiFi connected");
+    //  }
+    //  
+    
+      pinMode(led, OUTPUT);
+     
+      // Print a start message
+    //  Serial.println(F("SX1272 module and Arduino: receive packets without ACK"));
+    
+      // Power ON the module
+      e = sx1272.ON();
+      Serial.print(F("Setting power ON: state "));
+      Serial.println(e, DEC);
+      configradio();
+      // Print a success message
+      Serial.println(F("SX1272 successfully configured"));
+      Serial.println();
 
-  }
-  if(WiFi.status() == WL_CONNECTED){
-    Serial.println("");
-    Serial.println("WiFi connected");
-  }
-  pinMode(led, OUTPUT);
- 
-  // Print a start message
-//  Serial.println(F("SX1272 module and Arduino: receive packets without ACK"));
+}
 
-  // Power ON the module
-  e = sx1272.ON();
-  Serial.print(F("Setting power ON: state "));
-  Serial.println(e, DEC);
-  
-  // Set transmission mode and print the result
-  e = sx1272.setMode(1);
-  Serial.print(F("Setting Mode: state "));
-  Serial.println(e, DEC);
+void configradio(){
+
+ // Set transmission mode and print the result
+  e = sx1272.setMode(10);
+ // Serial.print(F("Setting Mode: state "));
+ // Serial.println(e, DEC);
   
   // Set header
   e = sx1272.setHeaderON();
-  Serial.print(F("Setting Header ON: state "));
-  Serial.println(e, DEC);
+  //Serial.print(F("Setting Header ON: state "));
+  //Serial.println(e, DEC);
   
   // Select frequency channel
   e = sx1272.setChannel(CH_18_868);
-  Serial.print(F("Setting Channel: state "));
-  Serial.println(e, DEC);
+//  Serial.print(F("Setting Channel: state "));
+ // Serial.println(e, DEC);
   
   
   // Select output power (Max, High or Low)
   e = sx1272.setPower('x');
-  Serial.print(F("Setting Power: state "));
-  Serial.println(e, DEC);
+ // Serial.print(F("Setting Power: state "));
+ // Serial.println(e, DEC);
   
   // Set the node address and print the result
-  e = sx1272.setNodeAddress(1);
-  Serial.print(F("Setting node address: state "));
-  Serial.println(e, DEC);
-  
-  // Print a success message
-  Serial.println(F("SX1272 successfully configured"));
-  Serial.println();
-
+  e = sx1272.setNodeAddress(5);
+ // Serial.print(F("Setting node address: state "));
+  //Serial.println(e, DEC);
 }
 
 void loop(void)
 {
 
-  // Receive message
- // e = sx1272.receivePacketTimeout(10000);
-  while(!sx1272.availableData()){
+  //  while(!sx1272.availableData()){
        st= sx1272.receiveAll(1000);
-  }
-//  if(sx1272.availableData())
-//   {
-//    Serial.print(F("Receive packet, state "));
-//    Serial.println(e, DEC);
-     Serial.println(F("lenght received"));
-     Serial.println(sx1272.packet_received.length);
-    for (unsigned int i = 0; i < sx1272.packet_received.length; i++)
-    {
-      my_packet[i] = (char)sx1272.packet_received.data[i];
-    }
-    my_packet_str = String(my_packet);
-    int Index1 = my_packet_str.indexOf('#');
-    int Index2 = my_packet_str.indexOf('#', Index1+1);
-    int Index3 = my_packet_str.indexOf('#', Index2+1);
-
-    String secondValue = my_packet_str.substring(Index1+1, Index2);
-    String thirdValue = my_packet_str.substring(Index2+1, Index3);
-
-    Serial.println(secondValue);
-    Serial.println(thirdValue);  
-    Serial.print(F("Message: "));
-    Serial.println(my_packet);
-    led_state = !led_state ;
-    digitalWrite(led, led_state);  // toggle the led state
+   // }
+   if(st==0){
+        Serial.println(F("Packet received"));
+      
+        Serial.println(sx1272.packet_received.length);
+        my_packet[0]='\0';
+        Serial.print(F("Data: "));
+        for(unsigned int i = 0; i < sx1272.packet_received.length; i++)
+        {
+            Serial.print(sx1272.packet_received.data[i]);    // Printing payload
+            Serial.print(" ");
+        }
+        
+        my_packet_str = String(my_packet);
+        int Index1 = my_packet_str.indexOf('#');
+        int Index2 = my_packet_str.indexOf('#', Index1+1);
+        int Index3 = my_packet_str.indexOf('#', Index2+1);
     
-    sx1272.getRSSIpacket();
-    sx1272.getSNR();
-
-    if (client.connect(server,80)) {  //   "184.106.153.149" or api.thingspeak.com
-    String postStr = apiKey;
-    if (secondValue == "2") {
-           postStr +="&field1=";
-           postStr += String(sx1272._RSSIpacket);
-           postStr +="&field2=";
-           postStr += String(sx1272._SNR);
-           postStr +="&field3=";
-           postStr += thirdValue;
-           postStr += "\r\n\r\n";
-    }
-    if (secondValue == "4") {
-           postStr +="&field4=";
-           postStr += String(sx1272._RSSIpacket);
-           postStr +="&field5=";
-           postStr += String(sx1272._SNR);
-           postStr +="&field6=";
-           postStr += thirdValue;
-           postStr += "\r\n\r\n";
-    }
-     client.print("POST /update HTTP/1.1\n"); 
-     client.print("Host: api.thingspeak.com\n"); 
-     client.print("Connection: close\n"); 
-     client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
-     client.print("Content-Type: application/x-www-form-urlencoded\n"); 
-     client.print("Content-Length: "); 
-     client.print(postStr.length()); 
-     client.print("\n\n"); 
-     client.print(postStr);
-     Serial.println("Message sent to Thingspeak");
-     client.stop();
-    }     
+        String secondValue = my_packet_str.substring(Index1+1, Index2);
+        String thirdValue = my_packet_str.substring(Index2+1, Index3);
     
-    Serial.print("Console: RSSI is ");
-    Serial.print(sx1272._RSSIpacket,DEC); 
-    Serial.print(" dBm");
-    Serial.println(" ");    
-    Serial.print("Console: SNR is ");
-    Serial.print(sx1272._SNR,DEC); 
-    Serial.println(" dBm");
-//  }
-//  else {
-//    Serial.print(F("Receive packet, state "));
-//    Serial.println(e, DEC);
-//  }
+        Serial.println(secondValue);
+        Serial.println(thirdValue);  
+        // Serial.print(F("Message: "));
+        // Serial.println(my_packet_str);
+        led_state = !led_state ;
+        digitalWrite(led, led_state);  // toggle the led state
+        
+//        sx1272.getRSSIpacket();
+//        sx1272.getSNR();
+//  
+//      if (client.connect(server,80)) {  //   "184.106.153.149" or api.thingspeak.com
+//      String postStr = apiKey;
+//      if (secondValue == "2") {
+//             postStr +="&field1=";
+//             postStr += String(sx1272._RSSIpacket);
+//             postStr +="&field2=";
+//             postStr += String(sx1272._SNR);
+//             postStr +="&field3=";
+//             postStr += thirdValue;
+//             postStr += "\r\n\r\n";
+//      }
+//      if (secondValue == "4") {
+//             postStr +="&field4=";
+//             postStr += String(sx1272._RSSIpacket);
+//             postStr +="&field5=";
+//             postStr += String(sx1272._SNR);
+//             postStr +="&field6=";
+//             postStr += thirdValue;
+//             postStr += "\r\n\r\n";
+//      }
+//       client.print("POST /update HTTP/1.1\n"); 
+//       client.print("Host: api.thingspeak.com\n"); 
+//       client.print("Connection: close\n"); 
+//       client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
+//       client.print("Content-Type: application/x-www-form-urlencoded\n"); 
+//       client.print("Content-Length: "); 
+//       client.print(postStr.length()); 
+//       client.print("\n\n"); 
+//       client.print(postStr);
+//       Serial.println("Message sent to Thingspeak");
+//       client.stop();
+//      }     
+//      
+//      Serial.print("Console: RSSI is ");
+//      Serial.print(sx1272._RSSIpacket,DEC); 
+//      Serial.print(" dBm");
+//      Serial.println(" ");    
+//      Serial.print("Console: SNR is ");
+//      Serial.print(sx1272._SNR,DEC); 
+//      Serial.println(" dBm");
+//
+
+   }
+   else{
+    
+        Serial.println(F("Packet not received successfully"));
+
+   }
+//     sx1272.clearFlags();
+//     sx1272.setSleepMode();
+//    configradio();
+//   
 }
